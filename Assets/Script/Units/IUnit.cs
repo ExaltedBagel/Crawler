@@ -17,17 +17,21 @@ public abstract class IUnit : MonoBehaviour {
     void Awake()
     {
         this.isAlive = true;
-        this.isHarmless = false;
-        
-        this.m_currentJob = null;
+        this.isHarmless = false;        
         p_perks = new HashSet<IPerk>();
         r_relationships = new Dictionary<IUnit, Relationship>();
         m_navAgent = GetComponent<NavMeshAgent>();
         m_anim = GetComponent<Animator>();
+        m_taskQueue = new Queue<IJob>();
+    }
+
+    void Start()
+    {
+        StartCoroutine(GameTick());
     }
 
     //Used to identify and recognize the unit
-    public string m_name         { get; set; }
+    public string m_name { get; set; }
     public float m_age { get; set; }
 
     //Attributes of the unit - Those change slowly overtime and influence many fields
@@ -60,11 +64,13 @@ public abstract class IUnit : MonoBehaviour {
     //Management layer
     public NavMeshAgent m_navAgent { get; set; }
     public Animator m_anim { get; set; }
-    public IJob m_currentJob { get; set; }
+    public IJob CurrentJob { get { return m_taskQueue.Peek(); } }
+    public Queue<IJob> m_taskQueue { get; set; } 
     Bed m_bed { get; set; }
-    protected State m_state;
+    public State m_state { get; set; }
     public delegate void m_EndPathAction(IUnit unit);
     m_EndPathAction m_endPathAction;
+    private float m_updateTick = 1.0f;
 
     #region Combat
 
@@ -93,7 +99,6 @@ public abstract class IUnit : MonoBehaviour {
         if (target != null)
         {
             target.heldItem = weapon;
-            //Debug.Log(weapon.name + " was put on " + target.name);
         }
         else
         {
@@ -125,7 +130,6 @@ public abstract class IUnit : MonoBehaviour {
         if (target != null)
         {
             target.wornArmor = armor;
-            //Debug.Log(armor.name + " was put on " + target.name);
         }
         else
         {
@@ -151,121 +155,72 @@ public abstract class IUnit : MonoBehaviour {
     #endregion
 
     #region Management
-    //Management movement
-    public void SetDestination(Vector3 destination, m_EndPathAction endPathAction, bool onlyCenterDestination = false)
+
+    public void JobFinished()
     {
-        NavMeshPath path = new NavMeshPath();
-        
-        for (int i = 0; i < 5; i++)
+        var job = m_taskQueue.Dequeue();
+        job.OnFinished();
+        if (m_taskQueue.Count > 0)
+            m_taskQueue.Peek().OnStart(this);
+        else
         {
-            var nextDest = GetNextSquarePosition(destination, i);
-            m_navAgent.CalculatePath(nextDest, path);
-
-            //Check if square is reachable
-            if (path.status.Equals(NavMeshPathStatus.PathPartial) || path.status.Equals(NavMeshPathStatus.PathInvalid))
-            {
-                if(onlyCenterDestination)
-                {
-                    Debug.Log("Center is not reachable");
-                    CancelInvoke("CheckPathStatus");
-                    ClearJob();
-                    return;
-                }
-
-                if (nextDest.Equals(new Vector3(-1, 0, 0)))
-                {
-                    CancelInvoke("CheckPathStatus");
-                    ClearJob();
-                    return;
-                }
-            }
-            else
-            {
-                m_navAgent.SetPath(path);
-                InvokeRepeating("CheckPathStatus", 0.2f, 0.2f);
-                m_endPathAction = endPathAction;
-                return;
-            }
-        }        
-    }
-
-    void DestinationReached()
-    {
-        //Stop observing path status
-        CancelInvoke("CheckPathStatus");
-        m_navAgent.ResetPath();
-        m_endPathAction(this);        
+            var newJob = job.GetAdjacentJob();
+            if (newJob == null)
+                m_state = IUnit.State.IDLE;
+            else if(newJob.CanAssignUnit())
+                newJob.AssignUnit(this);
+        }
     }
 
     public bool HasAJob()
     {
-        return m_currentJob != null;
+        if (m_taskQueue.Count == 1)
+            return !m_taskQueue.Peek().GetType().Equals(typeof(JobMoveTo));
+        else
+            return m_taskQueue.Count > 0;
     }
 
-    public void ClearJob()
+    public void ClearJobs()
     {
-        if (m_currentJob == null)
+        StopAllCoroutines();
+        while (m_taskQueue.Count > 0)
         {
-            //InvokeRepeating("LookForAJob", 0.5f, 2f);
-            return;
+            var task = m_taskQueue.Dequeue();
+            if(!task.Personnal)
+                JobManager.JobWasCleared(task);
         }
-
-        //Signal the manager the job is being cleared
-        JobManager.JobWasCleared(m_currentJob);
-
-        m_currentJob = null;
-        m_state = State.IDLE;
-        m_navAgent.stoppingDistance = 0.1f;
-        CancelInvoke("SignalJobProgress");
-
-        InvokeRepeating("LookForAJob", 0.5f, 2f);
+        m_state = IUnit.State.IDLE;
+        StartCoroutine(GameTick());
     }
 
     public void LookForAJob()
     {
-        Debug.Log(m_state + " ");
-        if(m_state.Equals(State.IDLE))
-            JobManager.FindJobForUnit(this);
-    }
-
-    public void CheckPathStatus()
-    {
-        // Check if we've reached the destination
-        if (!m_navAgent.pathPending)
-        {            
-            if (m_navAgent.remainingDistance <= m_navAgent.stoppingDistance)
-            {
-                if (!m_navAgent.hasPath || m_navAgent.velocity.sqrMagnitude == 0f)
-                {
-                    //m_state = State.IDLE;
-                    DestinationReached();
-                }
-            }
-        }
+        JobManager.FindJobForUnit(this);
     }
 
     public void SignalJobProgress()
     {
-        if (m_state.Equals(State.WORKING))
-        {
-            m_anim.SetInteger("moving", 6);
-            JobManager.UpdateJobProgress(this);
-        }                
+        JobManager.UpdateJobProgress(this);                      
+    }
+
+    public virtual void PlayActionAnimation()
+    {
+        m_anim.SetInteger("battle", 1);
+        m_anim.SetInteger("moving", 6);
     }
 
     public void GoToSleep()
     {
-        ClearJob();
-        CancelInvoke();
+        ClearJobs();       
         //Go to bed location
         if (m_bed == null)
             FindABed();
 
         if(m_bed != null)
         {
-            Debug.Log("Going to sleep at bed location");
-            m_state = State.SLEEP;
-            SetDestination(new Vector3(m_bed.location.x, 0, m_bed.location.z), FallAsleep, true);
+            //Debug.Log("Going to sleep at bed location");
+            //m_state = State.SLEEP;
+            //SetDestination(new Vector3(m_bed.location.x, 0, m_bed.location.z), true);
         }
     }
 
@@ -305,24 +260,26 @@ public abstract class IUnit : MonoBehaviour {
 
     public static void StartTheJob(IUnit unit)
     {
-        //Check if he can start his job
-        if (unit.m_currentJob != null)
+        
+    }
+
+    private IEnumerator GameTick()
+    {
+        while(true)
         {
-            if (unit.m_currentJob.IsInRange(unit.transform.position))
+            yield return new WaitForSeconds(m_updateTick);
+            if (m_taskQueue.Count > 0)
             {
-                unit.m_currentJob.state = IJob.State.PROGRESS;
-                unit.m_state = State.WORKING;
-                unit.InvokeRepeating("SignalJobProgress", 0.5f, 0.5f);
+                m_taskQueue.Peek().OnUpdate(this);
             }
             else
             {
-                Debug.Log("Job not in range");
-                unit.ClearJob();
+                LookForAJob();
             }
-        }
+        }        
     }
 
-    protected enum State
+    public enum State
     {
         IDLE,
         MOVING,
@@ -335,40 +292,10 @@ public abstract class IUnit : MonoBehaviour {
 
     #endregion
 
-    public Vector3 GetNextSquarePosition(Vector3 baseDest, int iteration)
-    {
-        switch (iteration)
-        {
-            case 0:
-                return new Vector3(baseDest.x, baseDest.y * -1.25f, baseDest.z);
-                break;
-            case 1:
-                return new Vector3(baseDest.x - 0.75f, baseDest.y * -1.25f, baseDest.z);
-                break;
-            case 2:
-                return new Vector3(baseDest.x, baseDest.y * -1.25f, baseDest.z + 0.75f);
-                break;
-            case 3:
-                return new Vector3(baseDest.x + 0.75f, baseDest.y * -1.25f, baseDest.z);
-                break;
-            case 4:
-                return new Vector3(baseDest.x, baseDest.y * -1.25f, baseDest.z - 0.75f);
-                break;
-            case 5:
-                return new Vector3(-1, 0, 0);
-                break;
-            default:
-                break;
-        }
-        return new Vector3(-1, 0, 0);
-    }
+    
 
     void Update()
     {      
         
     }
-
-
-    
-
 }

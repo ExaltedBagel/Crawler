@@ -16,32 +16,21 @@ public class JobRamp : IJob
 
     public override void AssignUnit(IUnit unit)
     {
-        //TODO Condition
-        if (!unit.HasAJob())
-        {
-            assignedUnits.Add(unit);
-            unit.m_navAgent.stoppingDistance = 1.5f;
-            unit.m_currentJob = this;
-            base.AssignUnit(unit);
-            OnStart(unit);
-        }
+        unit.m_taskQueue.Enqueue(new JobMoveTo(x, z, level));
+        unit.m_taskQueue.Enqueue(this);
     }
+
 
     public override void FreeUnit(IUnit unit)
     {
-        unit.ClearJob();
-        assignedUnits.Remove(unit);
+
     }
 
     public override void OnFinished()
     {
-        state = State.DONE;
-        foreach (IUnit unit in assignedUnits)
-        {
-            unit.ClearJob();
-        }
-        assignedUnits.Clear();
-        //Change the tile
+        base.OnFinished();
+
+        // Change the tile
         MapGenerator map = GameObject.Find("Map").GetComponent<MapGenerator>();
         switch (direction)
         {
@@ -72,16 +61,20 @@ public class JobRamp : IJob
 
         tool.RebuildFloor(x - 1, x + 1, z - 1, z + 1, level);
         tool.RebuildFloor(x - 1, x + 1, z - 1, z + 1, level + 1);
-
-
     }
 
     public override void OnStart(IUnit unitStarting)
     {
-        //Head to the destination and set the stopping distance accordingly
-        unitStarting.SetDestination(this.GetPosition(), IUnit.StartTheJob);
-        state = State.PENDING;
+
     }
 
-
+    public override void OnUpdate(IUnit unit)
+    {
+        ProgressBy(Mathf.RoundToInt(unit.a_strenght.currValue));
+        unit.PlayActionAnimation();
+        if (IsDone())
+        {
+            unit.JobFinished();
+        }
+    }
 }

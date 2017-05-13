@@ -15,7 +15,7 @@ public class UnitManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        InvokeRepeating("FindJobsForIdles", 5.0f, 2.5f);
+
     }
 
     // Update is called once per frame
@@ -48,9 +48,10 @@ public class UnitManager : MonoBehaviour {
         GameObject gobRes = Resources.Load("Prefabs/goblin", typeof(GameObject)) as GameObject;
         var newGob = Instantiate(gobRes, MapGenerator.entrance, Quaternion.identity);
         population.Add(newGob.GetComponent<IUnit>());
-        newGob.GetComponent<Goblin>().ClearJob();
+        newGob.GetComponent<Goblin>().ClearJobs();
     }
 
+    /*
     void FindJobsForIdles()
     {
         foreach (IUnit x in population)
@@ -61,4 +62,5 @@ public class UnitManager : MonoBehaviour {
             }
         }
     }
+    */
 }

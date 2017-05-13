@@ -280,7 +280,6 @@ public class ChunkDrawer : MonoBehaviour {
 
 
             currentVert += 4;
-            
         }
     }
 
@@ -447,85 +446,7 @@ public class ChunkDrawer : MonoBehaviour {
                 norms.Add(new Vector3(0, 1, 0));
 
             currentVert += 4;
-        }
-
-        /*
-        foreach (Edge e in patches)
-        {
-            //Draw contour
-            //LEFT
-            verts.Add(new Vector3(e.left() - 0.5f, -0.2f, e.top() + 0.5f));
-            verts.Add(new Vector3(e.left() - 0.5f, 0.0f, e.top() + 0.5f));
-            verts.Add(new Vector3(e.left() - 0.5f, 0.0f, e.bottom() - 0.5f));
-            verts.Add(new Vector3(e.left() - 0.5f, -0.2f, e.bottom() - 0.5f));
-
-            tris.Add(currentVert + 1);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 3);
-
-            for (int k = 0; k < 4; k++)
-                norms.Add(new Vector3(0, 1, 0));
-
-            currentVert += 4;
-
-            //RIGHT
-            verts.Add(new Vector3(e.right() + 0.5f, -0.2f, e.bottom() - 0.5f));
-            verts.Add(new Vector3(e.right() + 0.5f, 0.0f, e.bottom() - 0.5f));
-            verts.Add(new Vector3(e.right() + 0.5f, 0.0f, e.top() + 0.5f));
-            verts.Add(new Vector3(e.right() + 0.5f, -0.2f, e.top() + 0.5f));
-
-            tris.Add(currentVert + 1);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 3);
-
-            for (int k = 0; k < 4; k++)
-                norms.Add(new Vector3(0, 1, 0));
-
-            currentVert += 4;
-
-            //TOP
-            verts.Add(new Vector3(e.right() + 0.5f, -0.2f, e.top() + 0.5f));
-            verts.Add(new Vector3(e.right() + 0.5f, 0.0f, e.top() + 0.5f));
-            verts.Add(new Vector3(e.left() - 0.5f, 0.0f, e.top() + 0.5f));
-            verts.Add(new Vector3(e.left() - 0.5f, -0.2f, e.top() + 0.5f));
-
-            tris.Add(currentVert + 1);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 3);
-
-            for (int k = 0; k < 4; k++)
-                norms.Add(new Vector3(0, 1, 0));
-
-            currentVert += 4;
-
-            //BOTTOM
-            verts.Add(new Vector3(e.right() + 0.5f, 0.0f, e.bottom() - 0.5f));
-            verts.Add(new Vector3(e.right() + 0.5f, -0.2f, e.bottom() - 0.5f));
-            verts.Add(new Vector3(e.left() - 0.5f, -0.2f, e.bottom() - 0.5f));
-            verts.Add(new Vector3(e.left() - 0.5f, 0.0f, e.bottom() - 0.5f));
-
-            tris.Add(currentVert + 1);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 2);
-            tris.Add(currentVert + 0);
-            tris.Add(currentVert + 3);
-
-            for (int k = 0; k < 4; k++)
-                norms.Add(new Vector3(0, 1, 0));
-
-            currentVert += 4;
-        }
-        */
+        }        
     }
 
     void DrawRampDLBatch(List<Vector3> verts, List<Vector3> norms, List<int> tris, List<int> tris2, List<Vector2> uvs, List<Rectangle> patches, ref int currentVert)

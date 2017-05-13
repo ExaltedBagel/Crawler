@@ -21,17 +21,14 @@ public class CamControl : MonoBehaviour {
         if (Input.GetKey(KeyCode.RightArrow))
         {
             cam.transform.position += new Vector3(0.1f, 0, -0.1f);
-
         }
         if (Input.GetKey(KeyCode.DownArrow))
         {
             cam.transform.position += new Vector3(-0.1f, 0, -0.1f);
-
         }
         if (Input.GetKey(KeyCode.UpArrow))
         {
             cam.transform.position += new Vector3(0.1f, 0, 0.1f);
-
         }
     }
 }

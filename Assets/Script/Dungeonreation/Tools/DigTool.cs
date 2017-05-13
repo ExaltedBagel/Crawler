@@ -26,7 +26,7 @@ public class DigTool : IBuildTool
             {
                 activeTile = tile;
                 //activeChunk = manager.GetChunkAtLocation(newPosition);
-                position = new Vector3(Mathf.FloorToInt(newPosition.x), 0.5f, Mathf.FloorToInt(newPosition.z));
+                position = new Vector3(Mathf.FloorToInt(newPosition.x), -0.5f + newPosition.y, Mathf.FloorToInt(newPosition.z));
 
                 switch (state)
                 {

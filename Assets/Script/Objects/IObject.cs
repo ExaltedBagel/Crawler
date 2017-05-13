@@ -7,6 +7,7 @@ public abstract class IObject : MonoBehaviour {
     public IUnit m_owner { get; set; }
     public bool isPublic { get; set; }
     public Coordinate location;
+    public int Level {get;set;}
 
     public void SetInTile(Tile t)
     {

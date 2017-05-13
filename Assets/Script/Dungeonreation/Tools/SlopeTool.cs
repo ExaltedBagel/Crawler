@@ -112,7 +112,7 @@ public class SlopeTool : IBuildTool
             }
 
             //Slope is valid here
-            if (manager.IsTileValid(bottomX, bottomZ, manager.activeLevel, TileContent.FLOOR))
+            if (manager.IsTileValid(bottomX, bottomZ, manager.activeLevel, TileContent.WALL))
             {
                 /*
                 manager.currentFloor[bottomX, bottomZ].Content = dirUp;

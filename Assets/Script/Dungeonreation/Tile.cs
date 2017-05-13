@@ -20,12 +20,13 @@ public class Tile
         Marked = MarkedFor.NOTHING;        
     }
 
-    public Tile(int x, int z)
+    public Tile(int x, int z, int level)
     {
         mLinks = new List<Link>();
         Content = TileContent.WALL;
         Marked = MarkedFor.NOTHING;
         Coord = new Coordinate(x, z);
+        this.level = level;
     }
 
     public enum MarkedFor
@@ -50,6 +51,54 @@ public class Tile
 
             mLinks.Add(l);
         }
+    }
+
+    public static Vector3 PositionToVector3(int x, int z, int level)
+    {
+        return new Vector3(x, level * -1.25f, z);
+    }
+
+    public static Tile TileAtPosition(Vector3 position)
+    {
+        int level = Mathf.RoundToInt(-position.y / 1.25f);
+        int x = Mathf.RoundToInt(position.x);
+        int z = Mathf.RoundToInt(position.z);
+        return MapGenerator.MapInstance.Floors[level][x,z];
+    }
+
+    public static Tile TileAtPosition(int x, int z, int level)
+    {        
+        return MapGenerator.MapInstance.Floors[level][x, z];
+    }
+
+    public static bool IsTileWalkable(Tile tile)
+    {
+        return !tile.Content.Equals(TileContent.WALL);
+    }
+
+    public static bool IsTileAccessible(int x, int z, int level)
+    {
+        return IsTileAccessible(TileAtPosition(x, z, level));
+    }
+
+    public static bool IsTileAccessible(Vector3 position)
+    {
+        return IsTileAccessible(TileAtPosition(position));
+    }
+
+    public static bool IsTileAccessible(Tile tile)
+    {
+        var floor = MapGenerator.MapInstance.Floors[tile.level];
+        bool isAccessible = false;
+        if(tile.Coord.x > 0)
+            isAccessible |= IsTileWalkable(floor[tile.Coord.x - 1, tile.Coord.z]);
+        if(tile.Coord.x < floor.GetLength(0) - 1)
+            isAccessible |= IsTileWalkable(floor[tile.Coord.x - 1, tile.Coord.z]);
+        if (tile.Coord.z > 0)
+            isAccessible |= IsTileWalkable(floor[tile.Coord.x, tile.Coord.z - 1]);
+        if (tile.Coord.z < floor.GetLength(1) - 1)
+            isAccessible |= IsTileWalkable(floor[tile.Coord.x, tile.Coord.z + 1]);
+        return isAccessible;
     }
 }
 
@@ -76,6 +125,4 @@ public enum TileContent
     SLOPE_U_R = 10,
     SLOPE_U_D = 11,
     UNDERSLOPE = 12
-
-
 }

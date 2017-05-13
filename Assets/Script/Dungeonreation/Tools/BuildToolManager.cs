@@ -179,10 +179,10 @@ public class BuildToolManager : MonoBehaviour {
             }
         }
 
-        map.REMakeNavMesh();
+        map.IsDirty = true;
     }
 
-    public void RebuildFloor(int startX, int endX, int startZ, int endZ, int level)
+    public IEnumerator RebuildFloor(int startX, int endX, int startZ, int endZ, int level)
     {
 
         for (int i = startX / map.ChunkSize; i <= endX / map.ChunkSize; i++)
@@ -191,10 +191,11 @@ public class BuildToolManager : MonoBehaviour {
             {
                 ChunkDrawer chunk = GameObject.Find("chunk_" + level + "_" + i + "_" + j).GetComponent<ChunkDrawer>();
                 chunk.BuildMesh();
+                yield return null;
             }
         }
 
-        map.REMakeNavMesh();
+        map.IsDirty = true;
     }
 
     public void ResetIndicatorSize()
@@ -294,6 +295,7 @@ public class BuildToolManager : MonoBehaviour {
             activeLevel++;
             map.GotoFloor(activeLevel);
             currentFloor = map.Floors[activeLevel];
+            IBuildTool.topPlane = new Plane(Vector3.up, new Vector3() + Vector3.up - new Vector3(0, 1.25f * activeLevel, 0));
         }
     }
 
@@ -304,6 +306,7 @@ public class BuildToolManager : MonoBehaviour {
             activeLevel--;
             map.GotoFloor(activeLevel);
             currentFloor = map.Floors[activeLevel];
+            IBuildTool.topPlane = new Plane(Vector3.up, new Vector3() + Vector3.up - new Vector3(0, 1.25f * activeLevel, 0));
         }
     }
 

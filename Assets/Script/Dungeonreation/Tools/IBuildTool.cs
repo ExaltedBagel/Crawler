@@ -7,7 +7,7 @@ public abstract class IBuildTool
 {
     public State state { get; set; }
     protected Plane groundPlane;
-    protected Plane topPlane;
+    static public Plane topPlane;
     protected Tile activeTile;
     protected int activeX;
     protected int activeZ;

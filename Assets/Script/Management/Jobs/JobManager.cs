@@ -8,41 +8,27 @@ public class JobManager : MonoBehaviour {
     public static JobManager jobManager;
     static List<IJob> vacantJobs;
     static List<IJob> occupiedJobs;
+    static List<IJob> innaccessibleJobs;
     Object mLock;
 
     void Awake()
     {
         vacantJobs = new List<IJob>();
         occupiedJobs = new List<IJob>();
+        innaccessibleJobs = new List<IJob>();
         jobManager = GameObject.Find("GameManager").GetComponent<JobManager>();
     }
 
 	// Use this for initialization
 	void Start () {
-        //InvokeRepeating("AssignUnitsToJobs", 5.0f, 5.0f);
+        StartCoroutine(UpdateJobAccessibility());
+        StartCoroutine(UpdateJobAdjacency());
     }
 
     // Update is called once per frame
     void Update () {
 		
 	}
-
-    //Check every now and then if a job exists and if someone can take it.
-    void AssignUnitsToJobs()
-    {
-        for(int i = vacantJobs.Count - 1; i >= 0; i--)
-        {
-            IUnit freeUnit = unitManager.GetFreeUnit();
-            if (freeUnit == null)
-                break;
-            else
-            {
-                vacantJobs[i].AssignUnit(freeUnit);
-                occupiedJobs.Add(vacantJobs[i]);
-                vacantJobs.RemoveAt(i);
-            }
-        }
-    }
 
     public void AddNewJob(IJob job)
     {
@@ -63,54 +49,98 @@ public class JobManager : MonoBehaviour {
                         return;
                 }
 
-                IUnit freeUnit = unitManager.GetFreeUnit();
-
-                if (freeUnit == null)
+                //IUnit freeUnit = unitManager.GetFreeUnit();
+                //
+                //if (freeUnit == null)
+                //{
+                //    vacantJobs.Add(job);
+                //}
+                //else
+                //{
+                //    job.AssignUnit(freeUnit);
+                //    occupiedJobs.Add(job);
+                //}
+                if(Tile.IsTileAccessible(job.GetPosition()))
                 {
                     vacantJobs.Add(job);
                 }
                 else
                 {
-                    job.AssignUnit(freeUnit);
-                    occupiedJobs.Add(job);
+                    innaccessibleJobs.Add(job);
                 }
+                UpdateAdjacentJobs(job);
             } 
         }
     }
 
     public static void UpdateJobProgress(IUnit unit)
     {
-        if (unit.m_currentJob.progress <= 0)
-            unit.m_currentJob.state = IJob.State.DONE;
 
-        if(unit.m_currentJob.state.Equals(IJob.State.DONE))
+    }
+
+    private void UpdateAdjacentJobs(IJob job)
+    {
+        // Add all adjacent jobs
+        foreach (IJob x in vacantJobs)
         {
-            lock (vacantJobs)
+            if (x.Equals(job) || x.state.Equals(IJob.State.DONE))
+                continue;
+            if (Vector3.Distance(x.GetPosition(), job.GetPosition()) < 1.5f && x.Level == job.Level)
+                job.AdjacentJobs.Add(x);
+        }
+
+        foreach (IJob x in innaccessibleJobs)
+        {
+            if (x.Equals(job) || x.state.Equals(IJob.State.DONE))
+                continue;
+            if (Vector3.Distance(x.GetPosition(), job.GetPosition()) < 1.5f && x.Level == job.Level)
+                job.AdjacentJobs.Add(x);
+        }
+
+        Debug.Log("Job has " + job.AdjacentJobs.Count + " adjacent jobs");
+
+    }
+
+    private IEnumerator UpdateJobAccessibility()
+    {
+        while(true)
+        {
+            yield return new WaitForSeconds(1f);
+            lock (innaccessibleJobs)
             {
-                lock (occupiedJobs)
+                for (int i = innaccessibleJobs.Count - 1; i >= 0; i--)
                 {
-                    occupiedJobs.Remove(unit.m_currentJob);
-                    unit.m_currentJob.OnFinished();
-                    unit.ClearJob();
+                    if (Tile.IsTileAccessible(innaccessibleJobs[i].GetPosition()))
+                    {
+                        vacantJobs.Add(innaccessibleJobs[i]);
+                        innaccessibleJobs.RemoveAt(i);
+                    }
                 }
             }
-        }
-        else if(unit.m_currentJob.state.Equals(IJob.State.UNREACHABLE))
+        }        
+    }
+
+    private IEnumerator UpdateJobAdjacency()
+    {
+        while(true)
         {
-            lock (vacantJobs)
+            yield return new WaitForSeconds(2.0f);
+            foreach (IJob x in vacantJobs)
             {
-                lock (occupiedJobs)
-                {
-                    occupiedJobs.Remove(unit.m_currentJob);
-                    vacantJobs.Add(unit.m_currentJob);
-                    unit.ClearJob();
-                }
+                UpdateAdjacentJobs(x);
+            }
+            yield return new WaitForFixedUpdate();
+            foreach (IJob x in occupiedJobs)
+            {
+                UpdateAdjacentJobs(x);
+            }
+            yield return new WaitForFixedUpdate();
+            foreach (IJob x in innaccessibleJobs)
+            {
+                UpdateAdjacentJobs(x);
             }
         }
-        else if (unit.m_currentJob.state.Equals(IJob.State.PROGRESS))
-        {
-            unit.m_currentJob.progress--;
-        }
+        
     }
 
     public static bool FindJobForUnit(IUnit unit)
@@ -128,11 +158,10 @@ public class JobManager : MonoBehaviour {
                 }
             }
         }
-
         return false;
     }
 
-    public static void JobWasCleared(IJob job)
+    public static void JobWasCleared(IJob job, bool wasInnaccessible = false)
     {
         if (job == null)
             return;
@@ -140,18 +169,19 @@ public class JobManager : MonoBehaviour {
         {
             lock (occupiedJobs)
             {
-                if(job.state.Equals(IJob.State.DONE))
+                if(job.IsDone())
                 {
                     occupiedJobs.Remove(job);
                 }
                 else
                 {
-                    vacantJobs.Add(job);
+                    if (wasInnaccessible)
+                        innaccessibleJobs.Add(job);
+                    else
+                        vacantJobs.Add(job);
                     occupiedJobs.Remove(job);
                 }
             }
-
         }
-
     }
 }

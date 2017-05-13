@@ -9,7 +9,7 @@ public class MapGenerator : MonoBehaviour {
     public List<Tile[,]> Floors { get { return floors; } }
     public GameObject mapContainer { get; set; }
 
-    //
+    public bool IsDirty { get; set; }
     public int NumFloors;
     public int ChunkSize;
     public int ChunkX;
@@ -33,6 +33,9 @@ public class MapGenerator : MonoBehaviour {
         MakeNavMesh();
         //Goto floor 0
         GotoFloor(0);
+        IsDirty = false;
+
+        InvokeRepeating("REMakeNavMesh", 1.5f, 1.5f);
 
     }
 
@@ -50,7 +53,7 @@ public class MapGenerator : MonoBehaviour {
             {
                 for (int j = 0; j < ChunkSize * ChunkZ; j++)
                 {
-                    floor[i, j] = new Tile(i,j);
+                    floor[i, j] = new Tile(i,j,k);
 
                     if (i == 0 || j == 0 || i == ChunkSize * ChunkX - 1 || j == ChunkSize * ChunkZ - 1 )
                         floor[i, j].Content = TileContent.WALL;
@@ -86,8 +89,6 @@ public class MapGenerator : MonoBehaviour {
 
         //Make a room from the bed
         Quarter quart = new Quarter(new Rectangle(32, 2, 30, 4));
-        
-
     }
 
 
@@ -120,8 +121,7 @@ public class MapGenerator : MonoBehaviour {
                     data.SetupChunk(i, j, k);
                     data.BuildMesh();
                 }
-            }
-           
+            }           
             Level.SetActive(true);
         }
     }
@@ -160,16 +160,19 @@ public class MapGenerator : MonoBehaviour {
     public void MakeNavMesh()
     {
         mapContainer.GetComponent<NavMeshSurface>().BuildNavMesh();
-        //lv.GetComponent<NavMeshSurface>().BuildNavMesh();
     }
 
     public void REMakeNavMesh()
     {
-        var sur = mapContainer.GetComponent<NavMeshSurface>();
-        lock(sur)
+        if(IsDirty)
         {
-            sur.UpdateNavMesh(sur.navMeshData);
+            var sur = mapContainer.GetComponent<NavMeshSurface>();
+            lock (sur)
+            {
+                sur.UpdateNavMesh(sur.navMeshData);
+            }
+            IsDirty = false;
         }
-        //lv.GetComponent<NavMeshSurface>().BuildNavMesh();
+        
     }
 }
