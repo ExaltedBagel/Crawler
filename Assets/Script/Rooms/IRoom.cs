@@ -23,16 +23,12 @@ public abstract class IRoom {
         {
             for(int j = location.bottom(); j <= location.top(); j++)
             {
-                Debug.Log("Check tile " + i + ", " + j);
                 if (tiles[i,j].ObjectContained != null)
                 {
                     m_objectsContained.Add(tiles[i, j].ObjectContained);
                 }
             }
         }
-
-        Debug.Log("Room contained " + m_objectsContained.Count + " objects");
-
         RoomList().Add(this);
     }
 

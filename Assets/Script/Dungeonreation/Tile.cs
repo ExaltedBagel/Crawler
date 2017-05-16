@@ -11,7 +11,7 @@ public class Tile
     public TileContent Content { get; set; }
     public IObject ObjectContained { get; set; }
     public Coordinate Coord { get; }
-    int level { get; set; }
+    public int Level { get; set; }
 
     public Tile()
     {
@@ -26,7 +26,7 @@ public class Tile
         Content = TileContent.WALL;
         Marked = MarkedFor.NOTHING;
         Coord = new Coordinate(x, z);
-        this.level = level;
+        this.Level = level;
     }
 
     public enum MarkedFor
@@ -88,7 +88,7 @@ public class Tile
 
     public static bool IsTileAccessible(Tile tile)
     {
-        var floor = MapGenerator.MapInstance.Floors[tile.level];
+        var floor = MapGenerator.MapInstance.Floors[tile.Level];
         bool isAccessible = false;
         if(tile.Coord.x > 0)
             isAccessible |= IsTileWalkable(floor[tile.Coord.x - 1, tile.Coord.z]);

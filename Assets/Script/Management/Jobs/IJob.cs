@@ -53,9 +53,10 @@ public abstract class IJob {
     }
     public abstract void OnStart(IUnit unit);
     public abstract void OnUpdate(IUnit unit);
-    public virtual void OnFinished()
+    public virtual void OnFinished(IUnit unit)
     {
         state = State.DONE;
+        unit.m_state = IUnit.State.IDLE;
     }
 
     public Vector3 GetPosition()

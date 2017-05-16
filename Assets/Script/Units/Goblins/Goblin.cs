@@ -17,7 +17,7 @@ public class Goblin : IUnit
         s_defender  = 3.0f;
         s_social    = 3.0f;
         s_gatherer  = 3.0f;
-        s_crafter   = 3.0f;
+        s_crafter   = 3.0f;        
 
         //Add relevant body parts
         b_parts = new List<BodyPart>();
@@ -51,21 +51,13 @@ public class Goblin : IUnit
 
     void Update()
     {
-        if(m_state.Equals(State.WORKING))
-        {
-            m_anim.SetInteger("moving", 0);
-            m_anim.SetInteger("battle", 1);
-        }
-        else if (!m_navAgent.hasPath)
-        {
-            m_anim.SetInteger("moving", 0);
-            m_anim.SetInteger("battle", 0);
-        }
-        else
+        /*
+        if (m_navAgent.hasPath && m_state.Equals(State.MOVING))
         {
             m_anim.SetInteger("moving", 2);
             m_anim.SetInteger("battle", 1);
         }
+        */
     }
 }
 

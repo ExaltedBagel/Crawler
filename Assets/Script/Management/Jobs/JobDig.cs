@@ -23,9 +23,9 @@ public class JobDig : IJob
         base.FreeUnit(unit);
     }
 
-    public override void OnFinished()
+    public override void OnFinished(IUnit unit)
     {
-        base.OnFinished();
+        base.OnFinished(unit);
         // Change the tile
         MapGenerator map = GameObject.Find("Map").GetComponent<MapGenerator>();
         map.Floors[level][x,z].Content = TileContent.FLOOR;

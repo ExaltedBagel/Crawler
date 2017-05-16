@@ -96,9 +96,6 @@ public class JobManager : MonoBehaviour {
             if (Vector3.Distance(x.GetPosition(), job.GetPosition()) < 1.5f && x.Level == job.Level)
                 job.AdjacentJobs.Add(x);
         }
-
-        Debug.Log("Job has " + job.AdjacentJobs.Count + " adjacent jobs");
-
     }
 
     private IEnumerator UpdateJobAccessibility()

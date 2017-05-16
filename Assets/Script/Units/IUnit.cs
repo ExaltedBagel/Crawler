@@ -28,6 +28,8 @@ public abstract class IUnit : MonoBehaviour {
     void Start()
     {
         StartCoroutine(GameTick());
+        m_anim.SetInteger("moving", 0);
+        m_anim.SetInteger("battle", 1);
     }
 
     //Used to identify and recognize the unit
@@ -64,9 +66,10 @@ public abstract class IUnit : MonoBehaviour {
     //Management layer
     public NavMeshAgent m_navAgent { get; set; }
     public Animator m_anim { get; set; }
-    public IJob CurrentJob { get { return m_taskQueue.Peek(); } }
+    public IJob CurrentJob { get; set; }
     public Queue<IJob> m_taskQueue { get; set; } 
     Bed m_bed { get; set; }
+    public Bed m_Bed { get { return m_bed; } }
     public State m_state { get; set; }
     public delegate void m_EndPathAction(IUnit unit);
     m_EndPathAction m_endPathAction;
@@ -158,18 +161,30 @@ public abstract class IUnit : MonoBehaviour {
 
     public void JobFinished()
     {
+        StopCoroutine(GameTick());
         var job = m_taskQueue.Dequeue();
-        job.OnFinished();
+        job.OnFinished(this);
         if (m_taskQueue.Count > 0)
-            m_taskQueue.Peek().OnStart(this);
+        {
+            m_state = IUnit.State.IDLE;
+            CurrentJob = null;
+            //CurrentJob.OnStart(this);
+        }
         else
         {
             var newJob = job.GetAdjacentJob();
             if (newJob == null)
+            {
                 m_state = IUnit.State.IDLE;
+                CurrentJob = null;
+            }
             else if(newJob.CanAssignUnit())
+            {
                 newJob.AssignUnit(this);
+                CurrentJob = null;
+            }
         }
+        StartCoroutine(GameTick());
     }
 
     public bool HasAJob()
@@ -182,7 +197,7 @@ public abstract class IUnit : MonoBehaviour {
 
     public void ClearJobs()
     {
-        StopAllCoroutines();
+        StopCoroutine(GameTick());
         while (m_taskQueue.Count > 0)
         {
             var task = m_taskQueue.Dequeue();
@@ -211,17 +226,29 @@ public abstract class IUnit : MonoBehaviour {
 
     public void GoToSleep()
     {
-        ClearJobs();       
-        //Go to bed location
+        // Go to bed location
         if (m_bed == null)
             FindABed();
-
-        if(m_bed != null)
+        JobSleep sleep;
+        if (m_bed == null)
         {
-            //Debug.Log("Going to sleep at bed location");
-            //m_state = State.SLEEP;
-            //SetDestination(new Vector3(m_bed.location.x, 0, m_bed.location.z), true);
+            var tile = Tile.TileAtPosition(transform.position);
+            Debug.Log("Sleeping on the floor");
+            sleep = new JobSleep(tile.Coord.x, tile.Coord.z, tile.Level, null);
+            sleep.AssignUnit(this);
         }
+        else
+        {
+            sleep = new JobSleep(m_bed.location.x, m_bed.location.z, m_bed.Level, m_bed);
+            sleep.AssignUnit(this);
+        }
+    }
+
+    public void WakeUp()
+    {
+        m_state = State.IDLE;
+        m_anim.SetInteger("battle", 1);
+        m_anim.SetInteger("moving", 1);
     }
 
     public void FindABed()
@@ -248,14 +275,14 @@ public abstract class IUnit : MonoBehaviour {
     }
 
     //Actions to be done once the destination is reached
-    public void FallAsleep(IUnit unit)
+    public void FallAsleep()
     {
         //If his plan was sleeping, do this here
-        Debug.Log("Bed has been reached!");
         m_state = State.SLEEP;
-        m_bed.Use(this);
+        if(m_bed)
+            m_bed.Use(this);
+        m_anim.SetInteger("battle", 1);
         m_anim.SetInteger("moving", 12);
-        return;
     }
 
     public static void StartTheJob(IUnit unit)
@@ -270,7 +297,15 @@ public abstract class IUnit : MonoBehaviour {
             yield return new WaitForSeconds(m_updateTick);
             if (m_taskQueue.Count > 0)
             {
-                m_taskQueue.Peek().OnUpdate(this);
+                if (CurrentJob == null)
+                {
+                    CurrentJob = m_taskQueue.Peek();
+                    CurrentJob.OnStart(this);
+                }
+                else
+                {
+                    m_taskQueue.Peek().OnUpdate(this);
+                }
             }
             else
             {
